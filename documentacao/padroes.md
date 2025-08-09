@@ -1,0 +1,9 @@
+# 1. Princípios
+- Single Responsibility Principle (Princípio da Responsabilidade Única - SRP): A classe Authenticator tem a responsabilidade de gerenciar a criação e validação de tokens JWT. Ela não se preocupa com a lógica de negócio do usuário ou com o armazenamento de dados, delegando essas tarefas a outras partes do sistema. A separação de responsabilidades também é visível na estrutura de pastas (controllers, services, repositories).
+
+- Dependency Inversion Principle (Princípio da Inversão de Dependência - DIP): Os serviços (módulos de alto nível, em services/) dependem de abstrações, como as classes de repositório (em repositories/), em vez de implementações concretas de acesso a dados. Da mesma forma, os controladores (em controllers/) dependem de serviços. Isso desacopla os componentes, tornando o sistema mais flexível e fácil de testar, pois as dependências concretas podem ser substituídas (por exemplo, por mocks em testes)
+
+# 2. Padrões de Projeto (Design Patterns)
+- Singleton: A classe Authenticator no arquivo authenticator.ts é exportada como uma única instância (authenticatorInstance). Isso garante que apenas um objeto de autenticação seja utilizado em toda a aplicação, centralizando o controle e o estado (como o segredo do JWT) em um único ponto.
+
+- Repository: A estrutura do projeto inclui uma pasta repositories (ex: repositories/user.ts, repositories/animal.ts). Este padrão abstrai a camada de acesso a dados, separando a lógica de negócio das interações diretas com o banco de dados. As classes de serviço (em services/) dependem desses repositórios para persistir e recuperar dados, sem conhecer os detalhes da implementação da persistência.
