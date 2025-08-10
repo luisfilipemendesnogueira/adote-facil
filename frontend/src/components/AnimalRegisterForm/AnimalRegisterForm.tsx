@@ -40,6 +40,68 @@ const animalRegisterFormSchema = z.object({
 
 export type AnimalRegisterFormData = z.infer<typeof animalRegisterFormSchema>
 
+// Extraia a lógica de upload de imagem para uma função separada
+function handleAnimalImageUploadHelper(
+  e: React.ChangeEvent<HTMLInputElement>,
+  animalPictures: File[],
+  setAnimalPictures: React.Dispatch<React.SetStateAction<File[]>>,
+  setMaxPicsWarningModalOpen: React.Dispatch<React.SetStateAction<boolean>>,
+  setValue: (name: string, value: unknown) => void
+) {
+  if (e.target.files) {
+    const uploadedFiles = Array.from(e.target.files)
+
+    if (
+      uploadedFiles.length > 5 ||
+      animalPictures.length + uploadedFiles.length > 5
+    ) {
+      setMaxPicsWarningModalOpen(true)
+      return
+    }
+
+    const newPictures = [...animalPictures, ...uploadedFiles]
+    setAnimalPictures(newPictures)
+    setValue('pictures', newPictures) // Atualiza no react-hook-form
+  }
+}
+
+// Extraia a lógica de remoção de imagem para uma função separada
+function handleRemoveAnimalPictureHelper(
+  picIndex: number,
+  animalPictures: File[],
+  setAnimalPictures: React.Dispatch<React.SetStateAction<File[]>>,
+  setValue: (name: string, value: unknown) => void
+) {
+  const newAnimalPictures = animalPictures.filter(
+    (pic, index) => picIndex !== index,
+  )
+
+  setAnimalPictures(newAnimalPictures)
+  setValue('pictures', newAnimalPictures) // Atualiza no react-hook-form
+}
+
+// Extraia a lógica de submissão para uma função separada
+async function submitAnimalForm(
+  data: AnimalRegisterFormData,
+  onSuccess: () => void,
+  onError: (message: string) => void
+) {
+  try {
+    const token = getCookie('token')
+    const response = await animalRegister(data, token)
+
+    if (response.status === 201) {
+      onSuccess()
+    } else {
+      onError(response.data.message || 'Ocorreu um erro ao tentar registrar o animal.')
+    }
+  } catch (err) {
+    const error = err as Error
+    console.error('Erro no registro do animal:', error)
+    onError(error.message || 'Ocorreu um erro ao tentar registrar o animal.')
+  }
+}
+
 export function AnimalRegisterForm() {
   const [animalPictures, setAnimalPictures] = useState<File[]>([])
   const [maxPicsWarningModalOpen, setMaxPicsWarningModalOpen] = useState(false)
@@ -57,54 +119,33 @@ export function AnimalRegisterForm() {
 
   const descriptionValue = watch('description', '')
 
-  const handleAnimalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const uploadedFiles = Array.from(e.target.files)
-
-      if (
-        uploadedFiles.length > 5 ||
-        animalPictures.length + uploadedFiles.length > 5
-      ) {
-        setMaxPicsWarningModalOpen(true)
-        return
-      }
-
-      const newPictures = [...animalPictures, ...uploadedFiles]
-      setAnimalPictures(newPictures)
-      setValue('pictures', newPictures) // Atualiza no react-hook-form
-    }
-  }
-
-  const handleRemoveAnimalPicture = (picIndex: number) => {
-    const newAnimalPictures = animalPictures.filter(
-      (pic, index) => picIndex !== index,
+  // Use as funções auxiliares para simplificar o componente
+  const handleAnimalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) =>
+    handleAnimalImageUploadHelper(
+      e,
+      animalPictures,
+      setAnimalPictures,
+      setMaxPicsWarningModalOpen,
+      setValue
     )
 
-    setAnimalPictures(newAnimalPictures)
-    setValue('pictures', newAnimalPictures) // Atualiza no react-hook-form
-  }
+  const handleRemoveAnimalPicture = (picIndex: number) =>
+    handleRemoveAnimalPictureHelper(
+      picIndex,
+      animalPictures,
+      setAnimalPictures,
+      setValue
+    )
 
-  const onSubmit = async (data: AnimalRegisterFormData) => {
-    try {
-      const token = getCookie('token')
-
-      const response = await animalRegister(data, token)
-
-      if (response.status === 201) {
+  const onSubmit = (data: AnimalRegisterFormData) =>
+    submitAnimalForm(
+      data,
+      () => {
         alert('Animal cadastrado com sucesso!')
         window.location.href = '/area_logada/meus_animais'
-      } else {
-        alert(
-          response.data.message ||
-            'Ocorreu um erro ao tentar registrar o animal.',
-        )
-      }
-    } catch (err) {
-      const error = err as Error
-      console.error('Erro no registro do animal:', error)
-      alert(error.message || 'Ocorreu um erro ao tentar registrar o animal.')
-    }
-  }
+      },
+      (message) => alert(message)
+    )
 
   return (
     <>
